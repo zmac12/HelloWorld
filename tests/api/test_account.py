@@ -2878,9 +2878,6 @@ QUERY_CUSTOMERS_WITH_SORT = """
                 edges{
                     node{
                         firstName
-                        orders{
-                            totalCount
-                        }
                     }
                 }
             }
@@ -3081,9 +3078,6 @@ QUERY_STAFF_USERS_WITH_SORT = """
                 edges{
                     node{
                         firstName
-                        orders{
-                            totalCount
-                        }
                     }
                 }
             }
