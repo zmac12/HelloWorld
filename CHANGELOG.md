@@ -19,6 +19,7 @@ All notable, unreleased changes to this project will be documented in this file.
 - Optimize the queries for product list in the dashboard - #4995 by @IKarbowiak
 - Fixed serialization error on weight fields when running `loaddata` and `dumpdb` - #5005 by @NyanKiyoshi
 - Fixed JSON encoding error on Google Analytics reporting - #5004 by @NyanKiyoshi
+- Extend top-level connection resolvers with ability to sort results - #5018 by @fowczarek
 
 ## 2.9.0
 
