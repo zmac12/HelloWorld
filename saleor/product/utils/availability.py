@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Iterable, Optional, Tuple, Union
 
+from django.conf import settings
 from prices import TaxedMoney, TaxedMoneyRange
 
 from saleor.graphql.core.types import MoneyRange
@@ -8,18 +9,21 @@ from saleor.product.models import Product, ProductVariant
 
 from ...core.utils import to_local_currency
 from ...discount import DiscountInfo
-from ...extensions.manager import get_extensions_manager
+from ...plugins.manager import get_plugins_manager
+from ...warehouse.availability import (
+    are_all_product_variants_in_stock,
+    is_product_in_stock,
+    is_variant_in_stock,
+)
 from .. import ProductAvailabilityStatus, VariantAvailabilityStatus
 
 if TYPE_CHECKING:
-    from django.db.models.query import QuerySet
-
-    from ...extensions.manager import ExtensionsManager
+    # flake8: noqa
+    from ...plugins.manager import PluginsManager
 
 
 @dataclass
 class ProductAvailability:
-    available: bool
     on_sale: bool
     price_range: TaxedMoneyRange
     price_range_undiscounted: TaxedMoneyRange
@@ -30,7 +34,6 @@ class ProductAvailability:
 
 @dataclass
 class VariantAvailability:
-    available: bool
     on_sale: bool
     price: TaxedMoney
     price_undiscounted: TaxedMoney
@@ -39,28 +42,12 @@ class VariantAvailability:
     discount_local_currency: Optional[TaxedMoney]
 
 
-def products_with_availability(
-    products: "QuerySet[Product]",
-    discounts,
-    country: str,
-    local_currency: str,
-    extensions: "ExtensionsManager",
-):
-    for product in products:
-        yield (
-            product,
-            get_product_availability(
-                product, discounts, country, local_currency, extensions=extensions
-            ),
-        )
-
-
-def get_product_availability_status(product: "Product") -> ProductAvailabilityStatus:
+def get_product_availability_status(
+    product: "Product", country: str
+) -> ProductAvailabilityStatus:
     is_visible = product.is_visible
-    are_all_variants_in_stock = all(
-        variant.is_in_stock() for variant in product.variants.all()
-    )
-    is_in_stock = any(variant.is_in_stock() for variant in product.variants.all())
+    are_all_variants_in_stock = are_all_product_variants_in_stock(product, country)
+    is_in_stock = is_product_in_stock(product, country)
     requires_variants = product.product_type.has_variants
 
     if not product.is_published:
@@ -79,10 +66,8 @@ def get_product_availability_status(product: "Product") -> ProductAvailabilitySt
     return ProductAvailabilityStatus.READY_FOR_PURCHASE
 
 
-def get_variant_availability_status(
-    variant: ProductVariant
-) -> VariantAvailabilityStatus:
-    if not variant.is_in_stock():
+def get_variant_availability_status(variant, country):
+    if not is_variant_in_stock(variant, country):
         return VariantAvailabilityStatus.OUT_OF_STOCK
     return VariantAvailabilityStatus.AVAILABLE
 
@@ -133,26 +118,26 @@ def get_product_availability(
     discounts: Iterable[DiscountInfo] = None,
     country: Optional[str] = None,
     local_currency: Optional[str] = None,
-    extensions: Optional["ExtensionsManager"] = None,
+    plugins: Optional["PluginsManager"] = None,
 ) -> ProductAvailability:
 
-    if not extensions:
-        extensions = get_extensions_manager()
+    if not plugins:
+        plugins = get_plugins_manager()
     discounted_net_range = product.get_price_range(discounts=discounts)
     undiscounted_net_range = product.get_price_range()
     discounted = TaxedMoneyRange(
-        start=extensions.apply_taxes_to_product(
+        start=plugins.apply_taxes_to_product(
             product, discounted_net_range.start, country
         ),
-        stop=extensions.apply_taxes_to_product(
+        stop=plugins.apply_taxes_to_product(
             product, discounted_net_range.stop, country
         ),
     )
     undiscounted = TaxedMoneyRange(
-        start=extensions.apply_taxes_to_product(
+        start=plugins.apply_taxes_to_product(
             product, undiscounted_net_range.start, country
         ),
-        stop=extensions.apply_taxes_to_product(
+        stop=plugins.apply_taxes_to_product(
             product, undiscounted_net_range.stop, country
         ),
     )
@@ -163,9 +148,7 @@ def get_product_availability(
     )
 
     is_on_sale = product.is_visible and discount is not None
-
     return ProductAvailability(
-        available=product.is_available,
         on_sale=is_on_sale,
         price_range=discounted,
         price_range_undiscounted=undiscounted,
@@ -180,19 +163,22 @@ def get_variant_availability(
     discounts: Iterable[DiscountInfo] = None,
     country: Optional[str] = None,
     local_currency: Optional[str] = None,
-    extensions: Optional["ExtensionsManager"] = None,
+    plugins: Optional["PluginsManager"] = None,
 ) -> VariantAvailability:
 
-    if not extensions:
-        extensions = get_extensions_manager()
-    discounted = extensions.apply_taxes_to_product(
+    if not plugins:
+        plugins = get_plugins_manager()
+    discounted = plugins.apply_taxes_to_product(
         variant.product, variant.get_price(discounts=discounts), country
     )
-    undiscounted = extensions.apply_taxes_to_product(
+    undiscounted = plugins.apply_taxes_to_product(
         variant.product, variant.get_price(), country
     )
 
     discount = _get_total_discount(undiscounted, discounted)
+
+    if country is None:
+        country = settings.DEFAULT_COUNTRY
 
     if local_currency:
         price_local_currency = to_local_currency(discounted, local_currency)
@@ -204,7 +190,6 @@ def get_variant_availability(
     is_on_sale = variant.is_visible and discount is not None
 
     return VariantAvailability(
-        available=variant.is_available,
         on_sale=is_on_sale,
         price=discounted,
         price_undiscounted=undiscounted,

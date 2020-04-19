@@ -1,10 +1,10 @@
 from django.contrib.postgres.fields import JSONField
 from django.db import models
-from django.utils.translation import pgettext_lazy
 from mptt.managers import TreeManager
 from mptt.models import MPTTModel
 
 from ..core.models import SortableModel
+from ..core.permissions import MenuPermissions
 from ..core.utils.translations import TranslationProxy
 from ..page.models import Page
 from ..product.models import Category, Collection
@@ -16,12 +16,7 @@ class Menu(models.Model):
 
     class Meta:
         ordering = ("pk",)
-        permissions = (
-            (
-                "manage_menus",
-                pgettext_lazy("Permission description", "Manage navigation."),
-            ),
-        )
+        permissions = ((MenuPermissions.MANAGE_MENUS.codename, "Manage navigation."),)
 
     def __str__(self):
         return self.name
@@ -61,10 +56,6 @@ class MenuItem(MPTTModel, SortableModel):
     @property
     def linked_object(self):
         return self.category or self.collection or self.page
-
-    def get_url(self):
-        linked_object = self.linked_object
-        return linked_object.get_absolute_url() if linked_object else self.url
 
     def is_public(self):
         return not self.linked_object or getattr(

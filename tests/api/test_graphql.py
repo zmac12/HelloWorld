@@ -6,14 +6,11 @@ import pytest
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q
 from django.shortcuts import reverse
+from graphql.error import GraphQLError
 from graphql_relay import to_global_id
 
 from saleor.graphql.product.types import Product
-from saleor.graphql.utils import (
-    filter_by_query_param,
-    generate_query_argument_description,
-    get_nodes,
-)
+from saleor.graphql.utils import filter_by_query_param, get_nodes
 from tests.api.utils import get_graphql_content
 
 
@@ -54,7 +51,6 @@ def test_jwt_middleware(client, admin_user):
     repl_data = response.json()
     assert response.status_code == 200
     assert isinstance(response.wsgi_request.user, AnonymousUser)
-    assert "errors" in repl_data
     assert repl_data["data"]["me"] is None
 
     # test creating a token for admin user
@@ -80,23 +76,21 @@ def test_real_query(user_api_client, product):
     product_attr = product.product_type.product_attributes.first()
     category = product.category
     attr_value = product_attr.values.first()
-    filter_by = "%s:%s" % (product_attr.slug, attr_value.slug)
     query = """
     query Root($categoryId: ID!, $sortBy: ProductOrder, $first: Int,
-            $attributesFilter: [AttributeScalar], $minPrice: Float, $maxPrice: Float) {
+            $attributesFilter: [AttributeInput], $minPrice: Float, $maxPrice: Float) {
 
         category(id: $categoryId) {
             ...CategoryPageFragmentQuery
             __typename
         }
-        products(first: $first, sortBy: $sortBy, categories:[$categoryId],
-            attributes: $attributesFilter,
-            filter: {price: {gte: $minPrice, lte: $maxPrice}}) {
+        products(first: $first, sortBy: $sortBy, filter: {categories: [$categoryId],
+            attributes: $attributesFilter, price: {gte: $minPrice, lte: $maxPrice}}) {
 
             ...ProductListFragmentQuery
             __typename
         }
-        attributes(inCategory: $categoryId, first: 20) {
+        attributes(first: 20, filter: {inCategory: $categoryId}) {
             edges {
                 node {
                     ...ProductFiltersFragmentQuery
@@ -151,6 +145,7 @@ def test_real_query(user_api_client, product):
 
     fragment ProductFragmentQuery on Product {
         id
+        isAvailable
         name
         pricing {
             ...ProductPriceFragmentQuery
@@ -167,7 +162,6 @@ def test_real_query(user_api_client, product):
     }
 
     fragment ProductPriceFragmentQuery on ProductPricingInfo {
-        available
         discount {
             gross {
                 amount
@@ -219,7 +213,9 @@ def test_real_query(user_api_client, product):
         "categoryId": graphene.Node.to_global_id("Category", category.id),
         "sortBy": {"field": "NAME", "direction": "ASC"},
         "first": 1,
-        "attributesFilter": [filter_by],
+        "attributesFilter": [
+            {"slug": f"{product_attr.slug}", "value": f"{attr_value.slug}"}
+        ],
     }
     response = user_api_client.post_graphql(query, variables)
     get_graphql_content(response)
@@ -252,10 +248,10 @@ def test_get_nodes(product_list):
     invalid_item = Mock(type="test", pk=123)
     invalid_item_global_id = to_global_id(invalid_item.type, invalid_item.pk)
     global_ids.append(invalid_item_global_id)
-    with pytest.raises(AssertionError) as exc:
+    with pytest.raises(GraphQLError) as exc:
         get_nodes(global_ids, Product)
 
-    assert exc.value.args == ("Must receive an Product id.",)
+    assert exc.value.args == (f"Must receive Product id: {invalid_item_global_id}",)
 
     # Raise an error if no nodes were found
     global_ids = []
@@ -285,13 +281,3 @@ def test_filter_by_query_param(qs):
         q_objects |= Q(**{q: test_kwargs[q]})
     # FIXME: django 1.11 fails on called_once_with(q_objects)
     qs.filter.call_count == 1
-
-
-def test_generate_query_argument_description():
-    expected = (
-        "DEPRECATED: Will be removed in Saleor 2.10,"
-        " use `filter: {search: {}}` instead."
-        "\nSupported filter parameters:\n`field_1`, `field_2`"
-    )
-    field_list = ["field_1", "field_2"]
-    assert generate_query_argument_description(field_list) == expected

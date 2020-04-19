@@ -6,6 +6,7 @@ from graphql_relay import from_global_id, to_global_id
 from prices import Money
 
 from saleor.graphql.discount.enums import DiscountValueTypeEnum
+from saleor.product.error_codes import ProductErrorCode
 from tests.api.utils import get_graphql_content
 
 
@@ -225,6 +226,100 @@ def test_product_variant_update_updates_minimal_variant_price(
 
 
 @patch(
+    "saleor.graphql.product.mutations.products"
+    ".update_product_minimal_variant_price_task"
+)
+def test_product_variant_update_updates_invalid_variant_price(
+    mock_update_product_minimal_variant_price_task,
+    staff_api_client,
+    product,
+    permission_manage_products,
+):
+    query = """
+        mutation ProductVariantUpdate(
+            $id: ID!,
+            $priceOverride: Decimal,
+        ) {
+            productVariantUpdate(
+                id: $id,
+                input: {
+                    priceOverride: $priceOverride,
+                }
+            ) {
+                productVariant {
+                    name
+                }
+                productErrors {
+                    field
+                    message
+                    code
+                }
+            }
+        }
+    """
+    variant = product.variants.first()
+    variant_id = to_global_id("ProductVariant", variant.pk)
+    price_override = "-1.99"
+    variables = {"id": variant_id, "priceOverride": price_override}
+    response = staff_api_client.post_graphql(
+        query, variables, permissions=[permission_manage_products]
+    )
+    assert response.status_code == 200
+
+    content = get_graphql_content(response)
+    data = content["data"]["productVariantUpdate"]
+    assert data["productErrors"][0]["field"] == "priceOverride"
+    assert data["productErrors"][0]["code"] == ProductErrorCode.INVALID.name
+
+
+@patch(
+    "saleor.graphql.product.mutations.products"
+    ".update_product_minimal_variant_price_task"
+)
+def test_product_variant_update_updates_invalid_cost_price(
+    mock_update_product_minimal_variant_price_task,
+    staff_api_client,
+    product,
+    permission_manage_products,
+):
+    query = """
+        mutation ProductVariantUpdate(
+            $id: ID!,
+            $costPrice: Decimal,
+        ) {
+            productVariantUpdate(
+                id: $id,
+                input: {
+                    costPrice: $costPrice,
+                }
+            ) {
+                productVariant {
+                    name
+                }
+                productErrors {
+                    field
+                    message
+                    code
+                }
+            }
+        }
+    """
+    variant = product.variants.first()
+    variant_id = to_global_id("ProductVariant", variant.pk)
+    cost_price = "-1.99"
+    variables = {"id": variant_id, "costPrice": cost_price}
+    response = staff_api_client.post_graphql(
+        query, variables, permissions=[permission_manage_products]
+    )
+    assert response.status_code == 200
+
+    content = get_graphql_content(response)
+    data = content["data"]["productVariantUpdate"]
+    assert data["productErrors"][0]["field"] == "costPrice"
+    assert data["productErrors"][0]["code"] == ProductErrorCode.INVALID.name
+
+
+@patch(
     "saleor.graphql.product.mutations.products."
     "update_product_minimal_variant_price_task"
 )
@@ -295,9 +390,12 @@ def test_category_delete_updates_minimal_variant_price(
     data = content["data"]["categoryDelete"]
     assert data["errors"] == []
 
-    mock_update_products_minimal_variant_prices_task.delay.assert_called_once_with(
-        product_ids=[p.pk for p in product_list]
-    )
+    mock_update_products_minimal_variant_prices_task.delay.assert_called_once()
+    (
+        _call_args,
+        call_kwargs,
+    ) = mock_update_products_minimal_variant_prices_task.delay.call_args
+    assert set(call_kwargs["product_ids"]) == set(p.pk for p in product_list)
 
     for product in product_list:
         product.refresh_from_db()

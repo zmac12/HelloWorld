@@ -7,6 +7,7 @@ from ..core.connection import CountableDjangoObjectType
 from ..core.types import CountryDisplay, MoneyRange
 from ..translations.fields import TranslationField
 from ..translations.types import ShippingMethodTranslation
+from ..warehouse.types import Warehouse
 from .enums import ShippingMethodTypeEnum
 
 
@@ -51,6 +52,9 @@ class ShippingZone(CountableDjangoObjectType):
         ),
         model_field="shipping_methods",
     )
+    warehouses = graphene.List(
+        Warehouse, description="List of warehouses for shipping zone."
+    )
 
     class Meta:
         description = (
@@ -76,3 +80,7 @@ class ShippingZone(CountableDjangoObjectType):
     @staticmethod
     def resolve_shipping_methods(root: models.ShippingZone, *_args):
         return root.shipping_methods.all()
+
+    @staticmethod
+    def resolve_warehouses(root: models.ShippingZone, *_args):
+        return root.warehouses.all()

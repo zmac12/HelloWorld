@@ -1,4 +1,4 @@
-![github_saleor_readmew_header_01](https://user-images.githubusercontent.com/5421321/47800694-19bec680-dd2d-11e8-8625-2ed7c690bc13.jpg)
+![Saleor Commerce - A GraphQL-first platform for perfectionists](https://user-images.githubusercontent.com/249912/71523206-4e45f800-28c8-11ea-84ba-345a9bfc998a.png)
 
 <div align="center">
   <h1>Saleor Commerce</h1>
@@ -9,7 +9,7 @@
 </div>
 
 <div align="center">
-  A headless e-commerce platform delivering ultra-fast, dynamic, personalized shopping experiences. Beautiful online stores, anywhere, on any device.
+  A headless, GraphQL-first e-commerce platform delivering ultra-fast, dynamic, personalized shopping experiences. Beautiful online stores, anywhere, on any device.
 </div>
 
 <br>
@@ -37,7 +37,7 @@
     <img src="http://codecov.io/github/mirumee/saleor/coverage.svg?branch=master" alt="Codecov" />
   </a>
   <a href="https://docs.saleor.io/">
-    <img src="https://img.shields.io/badge/docs-docs.getsaleor.com-brightgreen.svg" alt="Documentation" />
+    <img src="https://img.shields.io/badge/docs-docs.saleor.io-brightgreen.svg" alt="Documentation" />
   </a>
   <a href="https://github.com/python/black">
     <img src="https://img.shields.io/badge/code%20style-black-000000.svg" alt="Code style: black">
@@ -78,8 +78,8 @@ Saleor is a rapidly-growing open source e-commerce platform that has served high
 Saleor is free and always will be.
 Help us out… If you love free stuff and great software, give us a star! 🌟
 
-![1 copy 2x](https://user-images.githubusercontent.com/5421321/47798207-30aeea00-dd28-11e8-9398-3d8426836a83.png)
-![group 2 2x](https://user-images.githubusercontent.com/5421321/47799917-8afd7a00-dd2b-11e8-88c7-63588e25bcea.png)
+![Saleor Storefront - React-based PWA e-commerce storefront](https://user-images.githubusercontent.com/249912/71527146-5b6be280-28da-11ea-901d-eb76161a6bfb.png)
+![Saleor Dashboard - Modern UI for managing your e-commerce](https://user-images.githubusercontent.com/249912/71523261-8a795880-28c8-11ea-98c0-6281ea37f412.png)
 
 ## Installation
 
@@ -87,23 +87,36 @@ Saleor requires Python 3.8, Node.js 10.0+, PostgreSQL and OS-specific dependency
 
 [See the Saleor docs](https://docs.saleor.io/docs/getting-started/intro/) for step-by-step installation and deployment instructions.
 
+Note:
+The `master` branch is the development version of Saleor and it may be unstable. To use the latest stable version, download it from the [Releases](https://github.com/mirumee/saleor/releases/) page or switch to a release tag.
+
+The current stable combination is:
+
+- Saleor 2.9.1: https://github.com/mirumee/saleor/releases/tag/2.9.1
+- Dashboard 2.0.0: https://github.com/mirumee/saleor-dashboard/releases/tag/v2.0.0
+- Storefront 0.7.0: https://github.com/mirumee/saleor-storefront/releases/tag/v0.7.0
 ## Documentation
 
 Saleor documentation is available here: [docs.saleor.io](https://docs.saleor.io)
 
 To contribute, please see the [`mirumee/saleor-docs` repository](https://github.com/mirumee/saleor-docs/).
 
-## PWA Storefront
+## Saleor Platform
+The easiest way to run all components of Saleor (API, storefront and dashboard) together on your local machine is to use the [saleor-platform](https://github.com/mirumee/saleor-platform) project. Go to that repository for instructions on how to use it.
 
-For PWA, single-page Storefront 2.0 go to the [saleor-storefront](https://github.com/mirumee/saleor-storefront) repository.
+[View saleor-platform](https://github.com/mirumee/saleor-platform)
 
-[View Storefront 2.0 demo](https://pwa.saleor.io/)
+## Storefront
 
-## Dashboard 2.0
+For PWA, single-page storefront go to the [saleor-storefront](https://github.com/mirumee/saleor-storefront) repository.
 
-For Dashboard 2.0 go to the [saleor-dashboard](https://github.com/mirumee/saleor-dashboard) repository.
+[View storefront demo](https://pwa.saleor.io/)
 
-[View Dashboard 2.0 demo](https://pwa.saleor.io/dashboard/)
+## Dashboard
+
+For dashboard go to the [saleor-dashboard](https://github.com/mirumee/saleor-dashboard) repository.
+
+[View dashboard demo](https://pwa.saleor.io/dashboard/)
 
 ## Demo
 
@@ -125,13 +138,10 @@ If nothing grabs your attention, check [our roadmap](https://github.com/mirumee/
 
 Get more details in our [Contributing Guide](https://docs.getsaleor.com/docs/contributing/intro/).
 
-## Translations
+## Legacy views
 
-Did you know that Saleor is available in more than 30 languages, translated entirely by our community?
+If you're interested in using the old version of Saleor, go the [legacy-views](https://github.com/mirumee/legacy-views) repository. It contains the 2.9.0 release, which includes Django-based views and HTML templates of Storefront 1.0 and Dashboard 1.0. Note: this version of Saleor is no longer officially maintained.
 
-If you'd like to help us, you can join one of our translation teams on [the localization platform Transifex](https://www.transifex.com/mirumee/saleor-1/languages/).
-
-The repository gets synchronized weekly with the latest contributions.
 
 ## Your feedback
 

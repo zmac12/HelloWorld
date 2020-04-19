@@ -1,10 +1,9 @@
 from django.db import models
-from django.urls import reverse
-from django.utils.translation import pgettext_lazy
 from draftjs_sanitizer import clean_draft_js
 
 from ..core.db.fields import SanitizedJSONField
 from ..core.models import PublishableModel, PublishedQuerySet
+from ..core.permissions import PagePermissions
 from ..core.utils.translations import TranslationProxy
 from ..seo.models import SeoModel, SeoModelTranslation
 
@@ -12,12 +11,12 @@ from ..seo.models import SeoModel, SeoModelTranslation
 class PagePublishedQuerySet(PublishedQuerySet):
     @staticmethod
     def user_has_access_to_all(user):
-        return user.is_active and user.has_perm("page.manage_pages")
+        return user.is_active and user.has_perm(PagePermissions.MANAGE_PAGES)
 
 
 class Page(SeoModel, PublishableModel):
-    slug = models.SlugField(unique=True, max_length=100)
-    title = models.CharField(max_length=200)
+    slug = models.SlugField(unique=True, max_length=255)
+    title = models.CharField(max_length=250)
     content = models.TextField(blank=True)
     content_json = SanitizedJSONField(
         blank=True, default=dict, sanitizer=clean_draft_js
@@ -29,15 +28,10 @@ class Page(SeoModel, PublishableModel):
 
     class Meta:
         ordering = ("slug",)
-        permissions = (
-            ("manage_pages", pgettext_lazy("Permission description", "Manage pages.")),
-        )
+        permissions = ((PagePermissions.MANAGE_PAGES.codename, "Manage pages."),)
 
     def __str__(self):
         return self.title
-
-    def get_absolute_url(self):
-        return reverse("page:details", kwargs={"slug": self.slug})
 
 
 class PageTranslation(SeoModelTranslation):

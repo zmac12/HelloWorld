@@ -9,11 +9,11 @@ from django.http import JsonResponse
 from django.template.response import TemplateResponse
 from django.utils import timezone
 from django.utils.functional import SimpleLazyObject
-from django.utils.translation import get_language, ugettext_lazy as _
+from django.utils.translation import get_language
 from django_countries.fields import Country
 
 from ..discount.utils import fetch_discounts
-from ..extensions.manager import get_extensions_manager
+from ..plugins.manager import get_plugins_manager
 from ..graphql.views import API_PATH, GraphQLView
 from . import analytics
 from .exceptions import ReadOnlyException
@@ -101,17 +101,17 @@ def site(get_response):
     return _site_middleware
 
 
-def extensions(get_response):
-    """Assign extensions manager."""
+def plugins(get_response):
+    """Assign plugins manager."""
 
     def _get_manager():
-        return get_extensions_manager(plugins=settings.PLUGINS)
+        return get_plugins_manager(plugins=settings.PLUGINS)
 
-    def _extensions_middleware(request):
-        request.extensions = SimpleLazyObject(lambda: _get_manager())
+    def _plugins_middleware(request):
+        request.plugins = SimpleLazyObject(lambda: _get_manager())
         return get_response(request)
 
-    return _extensions_middleware
+    return _plugins_middleware
 
 
 class ReadOnlyMiddleware:
@@ -130,7 +130,6 @@ class ReadOnlyMiddleware:
         "checkoutPaymentCreate",
         "checkoutShippingAddressUpdate",
         "checkoutShippingMethodUpdate",
-        "checkoutUpdateVoucher",
         "checkoutUpdateMetadata",
         "checkoutClearMetadata",
         "checkoutUpdatePrivateMetadata",
@@ -155,9 +154,7 @@ class ReadOnlyMiddleware:
             if not self._is_graphql_request_blocked(request):
                 return None
             error = GraphQLView.format_error(
-                ReadOnlyException(
-                    _("Be aware admin pirate! API runs in read-only mode!")
-                )
+                ReadOnlyException("Be aware admin pirate! API runs in read-only mode!")
             )
             data = {"errors": [error], "data": None}
             response = JsonResponse(data=data, safe=False)

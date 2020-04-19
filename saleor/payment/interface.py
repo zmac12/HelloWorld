@@ -1,9 +1,6 @@
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import TYPE_CHECKING, Any, Dict, Optional
-
-if TYPE_CHECKING:
-    from . import TransactionKind
+from typing import Any, Dict, Optional
 
 
 @dataclass
@@ -27,7 +24,7 @@ class GatewayResponse:
 
     is_success: bool
     action_required: bool
-    kind: "TransactionKind"
+    kind: str  # use "TransactionKind" class
     amount: Decimal
     currency: str
     transaction_id: Optional[str]
@@ -65,7 +62,7 @@ class PaymentData:
     billing: Optional[AddressData]
     shipping: Optional[AddressData]
     order_id: Optional[int]
-    customer_ip_address: str
+    customer_ip_address: Optional[str]
     customer_email: str
     token: Optional[str] = None
     customer_id: Optional[str] = None
@@ -89,7 +86,6 @@ class GatewayConfig:
 
     gateway_name: str
     auto_capture: bool
-    template_path: str
     # Each gateway has different connection data so we are not able to create
     # a unified structure
     connection_params: Dict[str, Any]

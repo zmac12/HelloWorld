@@ -5,6 +5,7 @@ from django.core.management import call_command
 
 from ...account import models as account_models
 from ...core.error_codes import ShopErrorCode
+from ...core.permissions import SitePermissions
 from ...core.utils.url import validate_storefront_url
 from ...site import models as site_models
 from ..account.i18n import I18nMixin
@@ -63,7 +64,7 @@ class ShopSettingsUpdate(BaseMutation):
 
     class Meta:
         description = "Updates shop settings."
-        permissions = ("site.manage_settings",)
+        permissions = (SitePermissions.MANAGE_SETTINGS,)
         error_type_class = ShopError
         error_type_field = "shop_errors"
 
@@ -92,7 +93,7 @@ class ShopSettingsUpdate(BaseMutation):
         data = data.get("input")
         cleaned_input = cls.clean_input(info, instance, data)
         instance = cls.construct_instance(instance, cleaned_input)
-        cls.clean_instance(instance)
+        cls.clean_instance(info, instance)
         instance.save()
         return ShopSettingsUpdate(shop=Shop())
 
@@ -108,7 +109,7 @@ class ShopAddressUpdate(BaseMutation, I18nMixin):
             "Update the shop's address. If the `null` value is passed, the currently "
             "selected address will be deleted."
         )
-        permissions = ("site.manage_settings",)
+        permissions = (SitePermissions.MANAGE_SETTINGS,)
         error_type_class = ShopError
         error_type_field = "shop_errors"
 
@@ -122,7 +123,7 @@ class ShopAddressUpdate(BaseMutation, I18nMixin):
                 company_address = account_models.Address()
             else:
                 company_address = site_settings.company_address
-            company_address = cls.validate_address(data, company_address)
+            company_address = cls.validate_address(data, company_address, info=info)
             company_address.save()
             site_settings.company_address = company_address
             site_settings.save(update_fields=["company_address"])
@@ -140,7 +141,7 @@ class ShopDomainUpdate(BaseMutation):
 
     class Meta:
         description = "Updates site domain of the shop."
-        permissions = ("site.manage_settings",)
+        permissions = (SitePermissions.MANAGE_SETTINGS,)
         error_type_class = ShopError
         error_type_field = "shop_errors"
 
@@ -154,7 +155,7 @@ class ShopDomainUpdate(BaseMutation):
             site.domain = domain
         if name is not None:
             site.name = name
-        cls.clean_instance(site)
+        cls.clean_instance(info, site)
         site.save()
         return ShopDomainUpdate(shop=Shop())
 
@@ -164,7 +165,7 @@ class ShopFetchTaxRates(BaseMutation):
 
     class Meta:
         description = "Fetch tax rates."
-        permissions = ("site.manage_settings",)
+        permissions = (SitePermissions.MANAGE_SETTINGS,)
         error_type_class = ShopError
         error_type_field = "shop_errors"
 
@@ -188,7 +189,7 @@ class HomepageCollectionUpdate(BaseMutation):
 
     class Meta:
         description = "Updates homepage collection of the shop."
-        permissions = ("site.manage_settings",)
+        permissions = (SitePermissions.MANAGE_SETTINGS,)
         error_type_class = ShopError
         error_type_field = "shop_errors"
 
@@ -199,7 +200,7 @@ class HomepageCollectionUpdate(BaseMutation):
         )
         site_settings = info.context.site.settings
         site_settings.homepage_collection = new_collection
-        cls.clean_instance(site_settings)
+        cls.clean_instance(info, site_settings)
         site_settings.save(update_fields=["homepage_collection"])
         return HomepageCollectionUpdate(shop=Shop())
 
@@ -219,7 +220,7 @@ class AuthorizationKeyAdd(BaseMutation):
 
     class Meta:
         description = "Adds an authorization key."
-        permissions = ("site.manage_settings",)
+        permissions = (SitePermissions.MANAGE_SETTINGS,)
         error_type_class = ShopError
         error_type_field = "shop_errors"
 
@@ -247,7 +248,7 @@ class AuthorizationKeyAdd(BaseMutation):
         instance = site_models.AuthorizationKey(
             name=key_type, site_settings=site_settings, **data.get("input")
         )
-        cls.clean_instance(instance)
+        cls.clean_instance(info, instance)
         instance.save()
         return AuthorizationKeyAdd(authorization_key=instance, shop=Shop())
 
@@ -265,7 +266,7 @@ class AuthorizationKeyDelete(BaseMutation):
 
     class Meta:
         description = "Deletes an authorization key."
-        permissions = ("site.manage_settings",)
+        permissions = (SitePermissions.MANAGE_SETTINGS,)
         error_type_class = ShopError
         error_type_field = "shop_errors"
 
@@ -314,7 +315,7 @@ class StaffNotificationRecipientCreate(ModelMutation):
     class Meta:
         description = "Creates a new staff notification recipient."
         model = account_models.StaffNotificationRecipient
-        permissions = ("site.manage_settings",)
+        permissions = (SitePermissions.MANAGE_SETTINGS,)
         error_type_class = ShopError
         error_type_field = "shop_errors"
 
@@ -376,7 +377,7 @@ class StaffNotificationRecipientUpdate(StaffNotificationRecipientCreate):
     class Meta:
         description = "Updates a staff notification recipient."
         model = account_models.StaffNotificationRecipient
-        permissions = ("site.manage_settings",)
+        permissions = (SitePermissions.MANAGE_SETTINGS,)
         error_type_class = ShopError
         error_type_field = "shop_errors"
 
@@ -390,6 +391,6 @@ class StaffNotificationRecipientDelete(ModelDeleteMutation):
     class Meta:
         description = "Delete staff notification recipient."
         model = account_models.StaffNotificationRecipient
-        permissions = ("site.manage_settings",)
+        permissions = (SitePermissions.MANAGE_SETTINGS,)
         error_type_class = ShopError
         error_type_field = "shop_errors"
